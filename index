@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三棱柱的表面展开图 - 数学教学工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap');
+        
+        body { 
+            font-family: 'Noto Serif SC', 'SimSun', serif;
+            overflow-x: hidden;
+            background: #f8fafc;
+        }
+        
+        .canvas-container { 
+            position: relative; 
+            width: 100%; 
+            height: 600px;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .math-text {
+            font-family: 'Times New Roman', 'Noto Serif SC', serif;
+            font-style: italic;
+        }
+        
+        .vertex-label {
+            position: absolute;
+            font-family: 'Times New Roman', serif;
+            font-weight: bold;
+            font-size: 18px;
+            color: #1e293b;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            text-shadow: 
+                -1px -1px 0 #fff,  
+                1px -1px 0 #fff,
+                -1px 1px 0 #fff,
+                1px 1px 0 #fff,
+                0 0 4px rgba(255,255,255,0.8);
+            z-index: 10;
+        }
+        
+        .vertex-label.highlight {
+            color: #dc2626;
+            font-size: 20px;
+        }
+        
+        .control-panel {
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .anim-btn {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .anim-btn:hover {
+            transform: translateX(4px);
+            background: #f1f5f9;
+        }
+        
+        .anim-btn.active {
+            background: #eff6ff;
+            border-left-color: #2563eb;
+            color: #1e40af;
+        }
+        
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #cbd5e1;
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: 3px solid #ffffff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #334155;
+        }
+        
+        .color-box {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 2px solid #475569;
+        }
+        
+        .info-card {
+            background: #fefce8;
+            border: 1px solid #fde047;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            color: #713f12;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+
+    <!-- Header -->
+    <header class="max-w-7xl mx-auto mb-6">
+        <div class="bg-white rounded-2xl shadow-lg p-6 border border-slate-200">
+            <h1 class="text-3xl font-bold text-slate-800 text-center mb-2">
+                三棱柱的表面展开图
+            </h1>
+            <p class="text-center text-slate-600">
+                <span class="math-text">直三棱柱 ABC-A₁B₁C₁</span>，底面为等腰直角三角形，<span class="math-text">∠BAC = 90°</span>
+            </p>
+            <div class="mt-4 flex justify-center gap-6 text-sm">
+                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full">
+                    E 为 AA₁ 中点
+                </span>
+                <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full">
+                    F 为 B₁C₁ 中点
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- Left Sidebar: Controls -->
+        <div class="lg:col-span-1 space-y-4">
+            
+            <!-- View Mode -->
+            <div class="control-panel rounded-xl p-4">
+                <h2 class="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    视图模式
+                </h2>
+                
+                <button onclick="switchMode(0)" id="btn-0" class="anim-btn active w-full text-left p-3 rounded-lg mb-2 font-medium">
+                    <div class="font-bold">3D 观察模式</div>
+                    <div class="text-sm text-slate-500 mt-1">拖动鼠标旋转三棱柱</div>
+                </button>
+            </div>
+
+            <!-- Animations -->
+            <div class="control-panel rounded-xl p-4">
+                <h2 class="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    展开动画
+                </h2>
+                
+                <button onclick="switchMode(1)" id="btn-1" class="anim-btn w-full text-left p-3 rounded-lg mb-2">
+                    <div class="font-bold text-green-700">动画一</div>
+                    <div class="text-sm text-slate-600 mt-1">
+                        侧面 <span class="math-text">BB₁C₁C</span> 绕 <span class="math-text">CC₁</span> 展开
+                    </div>
+                </button>
+                
+                <button onclick="switchMode(2)" id="btn-2" class="anim-btn w-full text-left p-3 rounded-lg mb-2">
+                    <div class="font-bold text-purple-700">动画二</div>
+                    <div class="text-sm text-slate-600 mt-1">
+                        侧面 <span class="math-text">BB₁C₁C</span> 绕 <span class="math-text">BB₁</span> 展开
+                    </div>
+                </button>
+                
+                <button onclick="switchMode(3)" id="btn-3" class="anim-btn w-full text-left p-3 rounded-lg mb-2">
+                    <div class="font-bold text-orange-700">动画三</div>
+                    <div class="text-sm text-slate-600 mt-1">
+                        上底面 <span class="math-text">A₁B₁C₁</span> 绕 <span class="math-text">A₁C₁</span> 展开
+                    </div>
+                </button>
+                
+                <button onclick="switchMode(4)" id="btn-4" class="anim-btn w-full text-left p-3 rounded-lg">
+                    <div class="font-bold text-pink-700">动画四</div>
+                    <div class="text-sm text-slate-600 mt-1">
+                        上底面 <span class="math-text">A₁B₁C₁</span> 绕 <span class="math-text">A₁B₁</span> 展开
+                    </div>
+                </button>
+            </div>
+
+            <!-- Controls -->
+            <div id="controls-panel" class="control-panel rounded-xl p-4 hidden">
+                <h3 class="font-bold text-slate-800 mb-3">旋转控制</h3>
+                
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium text-slate-700">展开角度</span>
+                        <span id="angle-display" class="text-2xl font-bold text-blue-600">0°</span>
+                    </div>
+                    <input type="range" min="0" max="360" value="0" class="slider" id="rotation-slider">
+                    <div class="flex justify-between text-xs text-slate-400 mt-1">
+                        <span>0°</span>
+                        <span>90°</span>
+                        <span>180°</span>
+                        <span>270°</span>
+                        <span>360°</span>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <strong>提示：</strong>拖动滑块观察展开过程（0-360°），同时可用鼠标旋转视角查看不同角度。
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="control-panel rounded-xl p-4">
+                <h3 class="font-bold text-slate-800 mb-3">图例说明</h3>
+                <div class="space-y-2">
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #fca5a5; border-color: #dc2626;"></div>
+                        <span class="math-text">侧面 AA₁B₁B（矩形）</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #86efac; border-color: #16a34a;"></div>
+                        <span class="math-text">侧面 AA₁C₁C（矩形）</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #93c5fd; border-color: #2563eb;"></div>
+                        <span class="math-text">侧面 BB₁C₁C（矩形）</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box" style="background: #fde047; border-color: #ca8a04;"></div>
+                        <span class="math-text">底面 ABC 和 A₁B₁C₁（等腰直角三角形）</span>
+                    </div>
+                    <div class="legend-item mt-3 pt-2 border-t border-slate-200">
+                        <div class="w-6 h-1 bg-red-600 rounded"></div>
+                        <span class="math-text text-red-700 font-bold">线段 EF（加粗显示）</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Canvas -->
+        <div class="lg:col-span-3">
+            <div class="bg-white rounded-2xl shadow-lg p-2 border border-slate-200">
+                <div class="canvas-container relative" id="canvas-container">
+                    <div id="labels-container" class="absolute inset-0 pointer-events-none"></div>
+                </div>
+                
+                <!-- Bottom Info -->
+                <div class="p-4 bg-slate-50 rounded-b-xl border-t border-slate-200">
+                    <div id="mode-description" class="text-slate-700 leading-relaxed">
+                        <strong class="text-blue-700">当前模式：3D 观察</strong><br>
+                        拖动鼠标可旋转三棱柱，滚轮缩放。观察直三棱柱的结构特征：上下底面为全等的等腰直角三角形，三个侧面为矩形。
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mathematical Notes -->
+            <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white rounded-xl p-4 shadow border border-slate-200">
+                    <h4 class="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        几何性质
+                    </h4>
+                    <ul class="text-sm text-slate-600 space-y-1 list-disc list-inside">
+                        <li>侧棱 <span class="math-text">AA₁ ⊥</span> 底面 <span class="math-text">ABC</span></li>
+                        <li><span class="math-text">AB = AC</span>，<span class="math-text">∠BAC = 90°</span></li>
+                        <li>侧面均为矩形，<span class="math-text">AA₁B₁B ≅ CC₁B₁B</span></li>
+                    </ul>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow border border-slate-200">
+                    <h4 class="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+                        展开图要点
+                    </h4>
+                    <ul class="text-sm text-slate-600 space-y-1 list-disc list-inside">
+                        <li>沿棱展开时，相邻面形成平角（180°）</li>
+                        <li>展开后 <span class="math-text">EF</span> 为直线段</li>
+                        <li>最短路径问题可转化为展开图上两点间距离</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global variables
+        let scene, camera, renderer, controls;
+        let prismGroup;
+        let currentMode = 0;
+        let rotationAngle = 0;
+        let labelElements = {};
+        let currentVertices = {};
+        
+        // Geometry parameters
+        const legLength = 3;
+        const height = 4;
+        
+        // Colors
+        const colors = {
+            sideAB: 0xff9999,
+            sideAC: 0x86efac,
+            sideBC: 0x93c5fd,
+            base: 0xfde047,
+            edge: 0x1e293b,
+            highlight: 0xdc2626
+        };
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf1f5f9);
+            
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+            camera.position.set(12, 10, 12);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+            
+            // Controls - 始终启用，不限制
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.enableZoom = true;
+            controls.enableRotate = true;
+            controls.enablePan = true;
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+            
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+            
+            const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+            dirLight2.position.set(-10, 10, -10);
+            scene.add(dirLight2);
+            
+            createLabels();
+            createPrism();
+            
+            window.addEventListener('resize', onWindowResize);
+            document.getElementById('rotation-slider').addEventListener('input', onSliderChange);
+            
+            animate();
+        }
+
+        function createLabels() {
+            const container = document.getElementById('labels-container');
+            const labels = [
+                { id: 'A', text: 'A', highlight: false },
+                { id: 'B', text: 'B', highlight: false },
+                { id: 'C', text: 'C', highlight: false },
+                { id: 'A1', text: 'A<sub>1</sub>', highlight: false },
+                { id: 'B1', text: 'B<sub>1</sub>', highlight: false },
+                { id: 'C1', text: 'C<sub>1</sub>', highlight: false },
+                { id: 'E', text: 'E', highlight: true },
+                { id: 'F', text: 'F', highlight: true }
+            ];
+            
+            labels.forEach(lbl => {
+                const div = document.createElement('div');
+                div.className = 'vertex-label' + (lbl.highlight ? ' highlight' : '');
+                div.innerHTML = lbl.text;
+                div.id = 'lbl-' + lbl.id;
+                container.appendChild(div);
+                labelElements[lbl.id] = div;
+            });
+        }
+
+        function updateLabels() {
+            const container = document.getElementById('canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            for (let id in currentVertices) {
+                const pos = currentVertices[id].clone();
+                pos.project(camera);
+                
+                const x = (pos.x * 0.5 + 0.5) * width;
+                const y = (-pos.y * 0.5 + 0.5) * height;
+                
+                const el = labelElements[id];
+                if (pos.z > 1) {
+                    el.style.display = 'none';
+                } else {
+                    el.style.display = 'block';
+                    el.style.left = x + 'px';
+                    el.style.top = y + 'px';
+                }
+            }
+        }
+
+        function createPrism() {
+            if (prismGroup) scene.remove(prismGroup);
+            prismGroup = new THREE.Group();
+            
+            const A = new THREE.Vector3(0, 0, 0);
+            const B = new THREE.Vector3(legLength, 0, 0);
+            const C = new THREE.Vector3(0, 0, legLength);
+            const A1 = new THREE.Vector3(0, height, 0);
+            const B1 = new THREE.Vector3(legLength, height, 0);
+            const C1 = new THREE.Vector3(0, height, legLength);
+            
+            const E = new THREE.Vector3(0, height/2, 0);
+            const F = new THREE.Vector3(legLength/2, height, legLength/2);
+            
+            currentVertices = { A, B, C, A1, B1, C1, E, F };
+            
+            switch(currentMode) {
+                case 0: create3DView(A, B, C, A1, B1, C1, E, F); break;
+                case 1: createAnim1(A, B, C, A1, B1, C1, E, F); break;
+                case 2: createAnim2(A, B, C, A1, B1, C1, E, F); break;
+                case 3: createAnim3(A, B, C, A1, B1, C1, E, F); break;
+                case 4: createAnim4(A, B, C, A1, B1, C1, E, F); break;
+            }
+            
+            scene.add(prismGroup);
+            
+            const box = new THREE.Box3().setFromObject(prismGroup);
+            const center = box.getCenter(new THREE.Vector3());
+            prismGroup.position.sub(center);
+            
+            for (let id in currentVertices) {
+                currentVertices[id].sub(center);
+            }
+        }
+
+        function createFace(vertices, color, opacity = 0.85) {
+            const geom = new THREE.BufferGeometry();
+            const pos = [];
+            const idx = [];
+            
+            vertices.forEach(v => pos.push(v.x, v.y, v.z));
+            for (let i = 1; i < vertices.length - 1; i++) {
+                idx.push(0, i, i+1);
+            }
+            
+            geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            geom.setIndex(idx);
+            geom.computeVertexNormals();
+            
+            const mat = new THREE.MeshLambertMaterial({ 
+                color: color, 
+                transparent: true, 
+                opacity: opacity,
+                side: THREE.DoubleSide
+            });
+            
+            const mesh = new THREE.Mesh(geom, mat);
+            prismGroup.add(mesh);
+            
+            const edges = new THREE.EdgesGeometry(geom);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ 
+                color: colors.edge, 
+                linewidth: 2 
+            }));
+            prismGroup.add(line);
+        }
+
+        function createLine(p1, p2, color, width = 4) {
+            const geom = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+            const mat = new THREE.LineBasicMaterial({ 
+                color: color, 
+                linewidth: width 
+            });
+            const line = new THREE.Line(geom, mat);
+            line.material.depthTest = false;
+            line.renderOrder = 1000;
+            prismGroup.add(line);
+        }
+
+        function create3DView(A, B, C, A1, B1, C1, E, F) {
+            createFace([A, B, B1, A1], colors.sideAB);
+            createFace([A, C, C1, A1], colors.sideAC);
+            createFace([B, C, C1, B1], colors.sideBC);
+            createFace([A, B, C], colors.base);
+            createFace([A1, B1, C1], colors.base);
+            createLine(E, F, colors.highlight, 5);
+        }
+
+        function createAnim1(A, B, C, A1, B1, C1, E, F) {
+            const angle = (rotationAngle * Math.PI) / 180;
+            
+            createFace([A, B, B1, A1], colors.sideAB);
+            createFace([A, C, C1, A1], colors.sideAC);
+            createFace([A, B, C], colors.base);
+            createFace([A1, B1, C1], colors.base);
+            
+            const axis = new THREE.Vector3(0, 1, 0);
+            const pivot = C.clone();
+            
+            const B_rot = rotateAroundAxis(B, pivot, axis, angle);
+            const B1_rot = rotateAroundAxis(B1, pivot, axis, angle);
+            
+            createFace([C, B_rot, B1_rot, C1], colors.sideBC);
+            
+            const F_new = new THREE.Vector3().addVectors(B1_rot, C1).multiplyScalar(0.5);
+            currentVertices.F = F_new;
+            currentVertices.B = B_rot;
+            currentVertices.B1 = B1_rot;
+            
+            createLine(E, F_new, colors.highlight, 5);
+        }
+
+        function createAnim2(A, B, C, A1, B1, C1, E, F) {
+            const angle = (rotationAngle * Math.PI) / 180;
+            
+            createFace([A, B, B1, A1], colors.sideAB);
+            createFace([A, C, C1, A1], colors.sideAC);
+            createFace([A, B, C], colors.base);
+            createFace([A1, B1, C1], colors.base);
+            
+            const axis = new THREE.Vector3(0, 1, 0);
+            const pivot = B.clone();
+            
+            const C_rot = rotateAroundAxis(C, pivot, axis, -angle);
+            const C1_rot = rotateAroundAxis(C1, pivot, axis, -angle);
+            
+            createFace([B, C_rot, C1_rot, B1], colors.sideBC);
+            
+            const F_new = new THREE.Vector3().addVectors(B1, C1_rot).multiplyScalar(0.5);
+            currentVertices.F = F_new;
+            currentVertices.C = C_rot;
+            currentVertices.C1 = C1_rot;
+            
+            createLine(E, F_new, colors.highlight, 5);
+        }
+
+        function createAnim3(A, B, C, A1, B1, C1, E, F) {
+            const angle = (rotationAngle * Math.PI) / 180;
+            
+            createFace([A, B, B1, A1], colors.sideAB);
+            createFace([A, C, C1, A1], colors.sideAC);
+            createFace([B, C, C1, B1], colors.sideBC);
+            createFace([A, B, C], colors.base);
+            
+            const axis = new THREE.Vector3().subVectors(C1, A1).normalize();
+            const pivot = A1.clone();
+            
+            const B1_rot = rotateAroundAxis(B1, pivot, axis, angle);
+            
+            createFace([A1, B1_rot, C1], colors.base);
+            
+            const F_new = new THREE.Vector3().addVectors(B1_rot, C1).multiplyScalar(0.5);
+            currentVertices.F = F_new;
+            currentVertices.B1 = B1_rot;
+            
+            createLine(E, F_new, colors.highlight, 5);
+        }
+
+        function createAnim4(A, B, C, A1, B1, C1, E, F) {
+            const angle = (rotationAngle * Math.PI) / 180;
+            
+            createFace([A, B, B1, A1], colors.sideAB);
+            createFace([A, C, C1, A1], colors.sideAC);
+            createFace([B, C, C1, B1], colors.sideBC);
+            createFace([A, B, C], colors.base);
+            
+            const axis = new THREE.Vector3().subVectors(B1, A1).normalize();
+            const pivot = A1.clone();
+            
+            const C1_rot = rotateAroundAxis(C1, pivot, axis, -angle);
+            
+            createFace([A1, B1, C1_rot], colors.base);
+            
+            const F_new = new THREE.Vector3().addVectors(B1, C1_rot).multiplyScalar(0.5);
+            currentVertices.F = F_new;
+            currentVertices.C1 = C1_rot;
+            
+            createLine(E, F_new, colors.highlight, 5);
+        }
+
+        function rotateAroundAxis(point, pivot, axis, angle) {
+            const v = new THREE.Vector3().subVectors(point, pivot);
+            v.applyAxisAngle(axis, angle);
+            return new THREE.Vector3().addVectors(pivot, v);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            if (prismGroup) updateLabels();
+            renderer.render(scene, camera);
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            rotationAngle = 0;
+            
+            document.querySelectorAll('.anim-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === mode);
+            });
+            
+            const controlsPanel = document.getElementById('controls-panel');
+            const slider = document.getElementById('rotation-slider');
+            const description = document.getElementById('mode-description');
+            
+            if (mode === 0) {
+                controlsPanel.classList.add('hidden');
+                description.innerHTML = '<strong class="text-blue-700">当前模式：3D 观察</strong><br>拖动鼠标可旋转三棱柱，滚轮缩放。观察直三棱柱的结构特征：上下底面为全等的等腰直角三角形，三个侧面为矩形。';
+            } else {
+                controlsPanel.classList.remove('hidden');
+                slider.value = 0;
+                document.getElementById('angle-display').textContent = '0°';
+                
+                const descs = [
+                    '',
+                    '<strong class="text-green-700">动画一：侧面 BB₁C₁C 绕 CC₁ 展开</strong><br>拖动滑块控制展开角度（0-360°），同时可用鼠标旋转视角观察。注意 EF 长度的变化规律。',
+                    '<strong class="text-purple-700">动画二：侧面 BB₁C₁C 绕 BB₁ 展开</strong><br>拖动滑块控制展开角度（0-360°），同时可用鼠标旋转视角观察。比较两种展开方式 EF 长度的差异。',
+                    '<strong class="text-orange-700">动画三：上底面 A₁B₁C₁ 绕 A₁C₁ 展开</strong><br>拖动滑块控制展开角度（0-360°），同时可用鼠标旋转视角观察。用于求立体图形表面最短路径问题。',
+                    '<strong class="text-pink-700">动画四：上底面 A₁B₁C₁ 绕 A₁B₁ 展开</strong><br>拖动滑块控制展开角度（0-360°），同时可用鼠标旋转视角观察。这是另一种展开方式，便于比较。'
+                ];
+                description.innerHTML = descs[mode];
+            }
+            
+            // 重要：所有模式下都启用 controls
+            controls.enabled = true;
+            controls.enableRotate = true;
+            
+            createPrism();
+        }
+
+        function onSliderChange(e) {
+            rotationAngle = parseInt(e.target.value);
+            document.getElementById('angle-display').textContent = rotationAngle + '°';
+            createPrism();
+        }
+
+        init();
+    </script>
+</body>
+</html>
